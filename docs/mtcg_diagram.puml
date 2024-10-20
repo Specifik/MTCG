@@ -1,0 +1,74 @@
+@startuml
+
+package "MTCG" {
+
+  class User {
+    - String username
+    - String password
+    - int coins = 20
+    + register()
+    + login()
+    + acquirePackage()
+    + defineDeck()
+    + battle(User opponent)
+    + tradeCard(Card card, String requirements)
+    + displayScoreboard()
+    + editProfile()
+  }
+
+  class Card {
+    - String name
+    - const int damage
+    - String elementType
+    + isSpellCard(): boolean
+    + isMonsterCard(): boolean
+  }
+
+  class Deck {
+    + List<Cards> userDeck
+  }
+
+  class Stack {
+    - List<Card> userStack
+  }
+
+  class MonsterCard extends Card {
+    - String elementType
+  }
+
+  class SpellCard extends Card {
+    - String elementType
+  }
+
+  class Package {
+    - List<Card> package
+    + getCards()
+  }
+
+  class Battle {
+    - User player1
+    - User player2
+    - List<String> battleLog
+    + startBattle(): void
+  }
+
+  class Trade {
+    - Card offeredCard
+    - String requirements
+    + createTrade(Card card, String requirements)
+    + acceptTrade(User user, Card offeredCard)
+  }
+
+  User *-- Deck : has
+  User *-- Stack : has
+  User  *--  Package : acquires (4 coins)
+  Battle  o--  User : starts
+  User  --  Trade : creates
+  Trade  --  Card : involves
+  Package  *--  Card : contains
+  Deck  *--  Card : contains
+  Stack  *--  Card : contains
+
+}
+
+@enduml
