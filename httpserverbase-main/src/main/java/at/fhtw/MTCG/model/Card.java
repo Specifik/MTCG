@@ -1,15 +1,12 @@
 package at.fhtw.MTCG.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import lombok.Setter;
 
 public class Card {
-    @Setter
     @JsonAlias({"name"})
     private String name;
     @JsonAlias({"damage"})
     private final int damage;
-    @Setter
     @JsonAlias({"elementType"})
     private String elementType;
 
@@ -28,12 +25,20 @@ public class Card {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public int getDamage() {
         return damage;
     }
 
     public String getElementType() {
         return elementType;
+    }
+
+    public void setElementType(String elementType) {
+        this.elementType = elementType;
     }
 
     public boolean isSpellCard() {

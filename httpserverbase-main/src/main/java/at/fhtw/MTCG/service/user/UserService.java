@@ -20,8 +20,10 @@ public class UserService implements Service {
             return this.userController.getUser(request.getPathParts().get(1));
         } else if (request.getMethod() == Method.GET) {
             return this.userController.getAllUsers();
-        } else if (request.getMethod() == Method.POST) {
+        } else if (request.getMethod() == Method.POST && "/users".equals(request.getServiceRoute())) {
             return this.userController.addUser(request);
+        } else if (request.getMethod() == Method.POST && "/sessions".equals(request.getServiceRoute())) {
+            return this.userController.loginUser(request);
         }
 
         return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "[user]");

@@ -10,6 +10,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.postgresql.util.PSQLException;
+
 public class UserRepository {
     private UnitOfWork unitOfWork;
 
@@ -22,9 +24,15 @@ public class UserRepository {
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "INSERT INTO users (username, password) VALUES (?, ?)")) {
             preparedStatement.setString(1, username);
-            preparedStatement.setString(2, password); // Ideally, use hashed passwords
+            preparedStatement.setString(2, password); // should be hashed
             int rowsAffected = preparedStatement.executeUpdate();
             return rowsAffected > 0;
+        } catch (PSQLException e) {
+            if (e.getSQLState().equals("23505")) { // 23505 is the SQL state for unique constraint violations in PostgreSQL
+                return false; // Username already exists
+            } else {
+                throw new DataAccessException("Error registering new user", e);
+            }
         } catch (SQLException e) {
             throw new DataAccessException("Error registering new user", e);
         }
@@ -80,5 +88,26 @@ public class UserRepository {
         } catch (SQLException e) {
             throw new DataAccessException("Error during user login", e);
         }
+    }
+
+    // Method to find a user by username and password
+    public User findUserByUsernameAndPassword(String username, String password) {
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "SELECT * FROM users WHERE username = ? AND password = ?")) {
+            preparedStatement.setString(1, username);
+            preparedStatement.setString(2, password);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                return new User(
+                        resultSet.getInt("id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("password"),
+                        resultSet.getInt("coins")
+                );
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error retrieving user by username and password", e);
+        }
+        return null;
     }
 }

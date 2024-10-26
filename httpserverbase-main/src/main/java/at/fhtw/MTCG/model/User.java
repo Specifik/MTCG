@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 public class User {
     @JsonAlias({"id"})
     private Integer id;
-    @JsonAlias({"username"})
+    @JsonAlias({"username", "Username"})
     private String username;
-    @JsonAlias({"password"})
+    @JsonAlias({"password", "Password"})
     private String password;
     @JsonAlias({"coins"})
     private int coins;
