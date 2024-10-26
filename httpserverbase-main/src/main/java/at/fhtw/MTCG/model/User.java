@@ -11,10 +11,21 @@ public class User {
     private String password;
     @JsonAlias({"coins"})
     private int coins;
+    private boolean loggedIn;
+    @JsonAlias({"token", "Token"})
+    private String token;
 
     // Jackson needs the default constructor
     public User() {}
 
+    public User(Integer id, String username, String password, int coins, String token, boolean loggedIn) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.coins = coins;
+        this.token = token;
+        this.loggedIn = loggedIn;
+    }
     public User(Integer id, String username, String password, int coins) {
         this.id = id;
         this.username = username;
@@ -53,4 +64,17 @@ public class User {
     public void setCoins(int coins) {
         this.coins = coins;
     }
+
+    public boolean isLoggedIn() {
+        return loggedIn;
+    }
+
+    public void setLoggedIn(boolean loggedIn) {
+        this.loggedIn = loggedIn;
+    }
+
+    public void setToken(String token){
+        this.token = token;
+    }
+    public String getToken() {return token; }
 }

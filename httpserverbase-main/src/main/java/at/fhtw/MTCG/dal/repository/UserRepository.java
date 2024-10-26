@@ -28,7 +28,7 @@ public class UserRepository {
             int rowsAffected = preparedStatement.executeUpdate();
             return rowsAffected > 0;
         } catch (PSQLException e) {
-            if (e.getSQLState().equals("23505")) { // 23505 is the SQL state for unique constraint violations in PostgreSQL
+            if (e.getSQLState().equals("23505")) { // 23505 unique constraint violations in PostgreSQL
                 return false; // Username already exists
             } else {
                 throw new DataAccessException("Error registering new user", e);
@@ -49,13 +49,45 @@ public class UserRepository {
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
                         resultSet.getString("password"),
-                        resultSet.getInt("coins")
+                        resultSet.getInt("coins"),
+                        resultSet.getString("token"),
+                        resultSet.getBoolean("logged_in")
                 );
             }
         } catch (SQLException e) {
             throw new DataAccessException("Error retrieving user by username", e);
         }
         return null;
+    }
+    public boolean updateUserToken(String token, String username) {
+        if (token == null || username == null) {
+            throw new IllegalArgumentException("Token and username cannot be null");
+        }
+
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "UPDATE users SET token = ? WHERE username = ?")) {
+            preparedStatement.setString(1, token);
+            preparedStatement.setString(2, username);
+            int rowsAffected = preparedStatement.executeUpdate();
+
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            throw new DataAccessException("Error updating user token by username", e);
+        }
+    }
+    public boolean checkUser(String token) {
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "SELECT * FROM users WHERE token = ?")) {
+            preparedStatement.setString(1, token);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("No user with token found ", e);
+        }
+        return false;
     }
 
     // Method to get all users
@@ -77,19 +109,6 @@ public class UserRepository {
         return users;
     }
 
-    // Method to validate user login
-    public boolean loginUser(String username, String password) {
-        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
-                "SELECT * FROM users WHERE username = ? AND password = ?")) {
-            preparedStatement.setString(1, username);
-            preparedStatement.setString(2, password);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            return resultSet.next();
-        } catch (SQLException e) {
-            throw new DataAccessException("Error during user login", e);
-        }
-    }
-
     // Method to find a user by username and password
     public User findUserByUsernameAndPassword(String username, String password) {
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
@@ -109,5 +128,17 @@ public class UserRepository {
             throw new DataAccessException("Error retrieving user by username and password", e);
         }
         return null;
+    }
+
+    // Update user logged-in state
+    public void updateUserLoggedInState(String username, boolean loggedIn) {
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "UPDATE users SET logged_in = ? WHERE username = ?")) {
+            preparedStatement.setBoolean(1, loggedIn);
+            preparedStatement.setString(2, username);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error updating user logged-in state", e);
+        }
     }
 }

@@ -11,11 +11,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 public class UserController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Registrierung (POST /users)
+    private final Map<String, User> tokenStorage = new HashMap<>();
+
+    //Registrierung (POST /users)
     public Response addUser(Request request) {
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             User user = objectMapper.readValue(request.getBody(), User.class);
@@ -44,7 +48,11 @@ public class UserController {
             User user = userRepository.findUserByUsernameAndPassword(loginRequest.getUsername(), loginRequest.getPassword());
 
             if (user != null) {
-                String token = generateToken(user); // Generate token for user
+                userRepository.updateUserLoggedInState(user.getUsername(), true); // set logged_in true
+                String token = generateToken();
+                userRepository.updateUserToken(token,user.getUsername());
+
+                //String token = generateToken(user); // Generate token for user
                 unitOfWork.commitTransaction();
                 return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\" : \"Login successful\", \"token\": \"" + token + "\" }");
             } else {
@@ -59,8 +67,31 @@ public class UserController {
         }
     }
 
+    public Response logoutUser(Request request) {
+        try (UnitOfWork unitOfWork = new UnitOfWork()) {
+            String token = request.getHeaderMap().getHeader("Authorization");
+            if (token != null && tokenStorage.containsKey(token)) {
+                User user = tokenStorage.get(token);
+                UserRepository userRepository = new UserRepository(unitOfWork);
+                userRepository.updateUserLoggedInState(user.getUsername(), false);
+                tokenStorage.remove(token);
+                unitOfWork.commitTransaction();
+                return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\" : \"Logout successful\" }");
+            } else {
+                return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Invalid or missing token\" }");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\" : \"Internal Server Error\" }");
+        }
+    }
+
     // GET /user/:id
-    public Response getUser(String id) {
+    public Response getUser(String id, String token) {
+
+        if(!validateToken(token)) {
+             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Unauthorized\" }");
+        }
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             User user = userRepository.findUserByUsername(id);
@@ -77,7 +108,10 @@ public class UserController {
     }
 
     // GET /user
-    public Response getAllUsers() {
+    public Response getAllUsers(String token) {
+        if(!validateToken(token)) {
+             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Unauthorized\" }");
+         }
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             List<User> users = userRepository.findAllUsers();
@@ -90,8 +124,28 @@ public class UserController {
         }
     }
 
-    // Token generierung
-    private String generateToken(User user) {
-        return user.getUsername() + "-mtcgToken"; // Simples Token-Format to match expected format in the CURL script
+    // Token generation
+    private String generateToken() {
+        //String token = user.getUsername() + "-mtcgToken"; // Simple token return for CURL-Script
+        //tokenStorage.put(token, user);
+        //user.setToken(token);
+        return UUID.randomUUID().toString();
+
+    }
+
+    // Token validation
+    public boolean validateToken(String token) {
+
+        try (UnitOfWork unitOfWork = new UnitOfWork()) {
+            UserRepository userRepository = new UserRepository(unitOfWork);
+            boolean isUser = userRepository.checkUser(token);
+            if (isUser) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+
     }
 }

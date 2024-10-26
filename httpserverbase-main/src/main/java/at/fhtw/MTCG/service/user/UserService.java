@@ -16,14 +16,18 @@ public class UserService implements Service {
 
     @Override
     public Response handleRequest(Request request) {
+        String token = request.getHeaderMap().getHeader("token");
         if (request.getMethod() == Method.GET && request.getPathParts().size() > 1) {
-            return this.userController.getUser(request.getPathParts().get(1));
+
+            return this.userController.getUser(request.getPathParts().get(1), token);
         } else if (request.getMethod() == Method.GET) {
-            return this.userController.getAllUsers();
+            return this.userController.getAllUsers(token);
         } else if (request.getMethod() == Method.POST && "/users".equals(request.getServiceRoute())) {
             return this.userController.addUser(request);
         } else if (request.getMethod() == Method.POST && "/sessions".equals(request.getServiceRoute())) {
             return this.userController.loginUser(request);
+        } else if (request.getMethod() == Method.POST && "/logout".equals(request.getServiceRoute())) {
+            return this.userController.logoutUser(request);
         }
 
         return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "[user]");
