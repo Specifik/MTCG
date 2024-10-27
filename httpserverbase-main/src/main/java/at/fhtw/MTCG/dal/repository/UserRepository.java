@@ -25,7 +25,7 @@ public class UserRepository {
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "INSERT INTO users (username, password) VALUES (?, ?)")) {
             preparedStatement.setString(1, username);
-            preparedStatement.setString(2, password); // should be hashed
+            preparedStatement.setString(2, password);
             int rowsAffected = preparedStatement.executeUpdate();
             return rowsAffected > 0;
         } catch (PSQLException e) {
@@ -140,11 +140,11 @@ public class UserRepository {
     }
 
     // Method to find a user by username and password
-    public User findUserByUsernameAndPassword(String username, String password) {
+    public User findUserByUsernameAndPassword(String username, String hashedPassword) {
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "SELECT * FROM users WHERE username = ? AND password = ?")) {
             preparedStatement.setString(1, username);
-            preparedStatement.setString(2, password);
+            preparedStatement.setString(2, hashedPassword);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
                 return new User(

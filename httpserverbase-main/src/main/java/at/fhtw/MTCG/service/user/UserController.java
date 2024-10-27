@@ -7,6 +7,7 @@ import at.fhtw.httpserver.server.Response;
 import at.fhtw.MTCG.dal.UnitOfWork;
 import at.fhtw.MTCG.dal.repository.UserRepository;
 import at.fhtw.MTCG.model.User;
+import at.fhtw.MTCG.utils.PasswordHasher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -23,6 +24,10 @@ public class UserController {
     public Response addUser(Request request) {
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             User user = objectMapper.readValue(request.getBody(), User.class);
+
+            String hashedPassword = PasswordHasher.hashPassword(user.getPassword());
+            user.setPassword(hashedPassword);
+
             UserRepository userRepository = new UserRepository(unitOfWork);
             boolean success = userRepository.registerUser(user.getUsername(), user.getPassword());
             if (success) {
@@ -44,15 +49,16 @@ public class UserController {
     public Response loginUser(Request request) {
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             User loginRequest = objectMapper.readValue(request.getBody(), User.class);
+
+            String hashedPassword = PasswordHasher.hashPassword(loginRequest.getPassword());
+
             UserRepository userRepository = new UserRepository(unitOfWork);
-            User user = userRepository.findUserByUsernameAndPassword(loginRequest.getUsername(), loginRequest.getPassword());
+            User user = userRepository.findUserByUsernameAndPassword(loginRequest.getUsername(), hashedPassword);
 
             if (user != null) {
                 userRepository.updateUserLoggedInState(user.getUsername(), true); // set logged_in true
                 String token = generateToken(user);
                 userRepository.updateUserToken(token,user.getUsername());
-
-                //String token = generateToken(user); // Generate token for user
                 unitOfWork.commitTransaction();
                 return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\" : \"Login successful\", \"token\": \"" + token + "\" }");
             } else {
