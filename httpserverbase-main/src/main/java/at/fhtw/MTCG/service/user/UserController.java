@@ -12,13 +12,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
-import java.util.Map;
-import java.util.HashMap;
 
 public class UserController {
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private final Map<String, User> tokenStorage = new HashMap<>();
 
     //Registrierung (POST /users)
     public Response addUser(Request request) {
