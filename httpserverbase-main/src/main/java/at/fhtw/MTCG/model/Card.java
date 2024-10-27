@@ -3,6 +3,8 @@ package at.fhtw.MTCG.model;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class Card {
+    @JsonAlias({"id"})
+    private int id;
     @JsonAlias({"name"})
     private String name;
     @JsonAlias({"damage"})
@@ -15,10 +17,19 @@ public class Card {
         this.damage = 0;
     }
 
-    public Card(String name, int damage, String elementType) {
+    public Card(int id, String name, int damage, String elementType) {
+        this.id = id;
         this.name = name;
         this.damage = damage;
         this.elementType = elementType;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getName() {
