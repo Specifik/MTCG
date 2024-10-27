@@ -26,7 +26,7 @@ public class UserService implements Service {
             return this.userController.addUser(request);
         } else if (request.getMethod() == Method.POST && "/sessions".equals(request.getServiceRoute())) {
             return this.userController.loginUser(request);
-        } else if (request.getMethod() == Method.POST && "/logout".equals(request.getServiceRoute())) {
+        } else if (request.getMethod() == Method.DELETE && "/sessions".equals(request.getServiceRoute())) {
             return this.userController.logoutUser(request);
         }
 

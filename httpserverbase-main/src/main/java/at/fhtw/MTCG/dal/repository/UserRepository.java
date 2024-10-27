@@ -7,6 +7,7 @@ import at.fhtw.MTCG.model.User;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,14 +60,42 @@ public class UserRepository {
         }
         return null;
     }
+
+    // Method to find a user by token
+    public User findUserByToken(String token) {
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "SELECT * FROM users WHERE token = ?")) {
+            preparedStatement.setString(1, token);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                return new User(
+                        resultSet.getInt("id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("password"),
+                        resultSet.getInt("coins"),
+                        resultSet.getString("token"),
+                        resultSet.getBoolean("logged_in")
+                );
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error retrieving user by token", e);
+        }
+        return null;
+    }
+
+
     public boolean updateUserToken(String token, String username) {
-        if (token == null || username == null) {
-            throw new IllegalArgumentException("Token and username cannot be null");
+        if (username == null) {
+            throw new IllegalArgumentException("username cannot be null");
         }
 
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "UPDATE users SET token = ? WHERE username = ?")) {
-            preparedStatement.setString(1, token);
+            if(token == null) {
+                preparedStatement.setNull(1, Types.VARCHAR); // set Token to null on logout
+            } else {
+                preparedStatement.setString(1, token);
+            }
             preparedStatement.setString(2, username);
             int rowsAffected = preparedStatement.executeUpdate();
 
@@ -76,6 +105,7 @@ public class UserRepository {
             throw new DataAccessException("Error updating user token by username", e);
         }
     }
+
     public boolean checkUser(String token) {
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "SELECT * FROM users WHERE token = ?")) {

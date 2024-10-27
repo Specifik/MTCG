@@ -49,7 +49,7 @@ public class UserController {
 
             if (user != null) {
                 userRepository.updateUserLoggedInState(user.getUsername(), true); // set logged_in true
-                String token = generateToken();
+                String token = generateToken(user);
                 userRepository.updateUserToken(token,user.getUsername());
 
                 //String token = generateToken(user); // Generate token for user
@@ -69,24 +69,30 @@ public class UserController {
 
     public Response logoutUser(Request request) {
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
-            String token = request.getHeaderMap().getHeader("Authorization");
-            if (token != null && tokenStorage.containsKey(token)) {
-                User user = tokenStorage.get(token);
-                UserRepository userRepository = new UserRepository(unitOfWork);
-                userRepository.updateUserLoggedInState(user.getUsername(), false);
-                tokenStorage.remove(token);
-                unitOfWork.commitTransaction();
-                return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\" : \"Logout successful\" }");
-            } else {
+            String token = request.getHeaderMap().getHeader("token");
+            if(token == null || token.isEmpty()) {
                 return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Invalid or missing token\" }");
             }
+            UserRepository userRepository = new UserRepository(unitOfWork);
+            User user = userRepository.findUserByToken(token);
+
+            if(user == null) {
+                return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Invalid token\" }");
+            }
+
+                userRepository.updateUserToken(null, user.getUsername()); // remove token from user
+                userRepository.updateUserLoggedInState(user.getUsername(), false);
+                unitOfWork.commitTransaction();
+
+                return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\" : \"Logout successful\" }");
+
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\" : \"Internal Server Error\" }");
         }
     }
 
-    // GET /user/:id
+    // GET /user/id:/token:
     public Response getUser(String id, String token) {
 
         if(!validateToken(token)) {
@@ -107,7 +113,7 @@ public class UserController {
         }
     }
 
-    // GET /user
+    // GET /user/token:
     public Response getAllUsers(String token) {
         if(!validateToken(token)) {
              return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\" : \"Unauthorized\" }");
@@ -125,12 +131,10 @@ public class UserController {
     }
 
     // Token generation
-    private String generateToken() {
-        //String token = user.getUsername() + "-mtcgToken"; // Simple token return for CURL-Script
-        //tokenStorage.put(token, user);
-        //user.setToken(token);
-        return UUID.randomUUID().toString();
-
+    private String generateToken(User user) {
+        String token = user.getUsername() + "-mtcgToken"; // token for CURL-Script
+        return token;
+        //return UUID.randomUUID().toString();
     }
 
     // Token validation
