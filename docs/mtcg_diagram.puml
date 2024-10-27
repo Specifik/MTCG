@@ -3,6 +3,7 @@
 package "MTCG" {
 
   class User {
+    - int id
     - String username
     - String password
     - int coins = 20
@@ -17,19 +18,26 @@ package "MTCG" {
   }
 
   class Card {
+    - int id
     - String name
-    - const int damage
+    - int damage
     - String elementType
     + isSpellCard(): boolean
     + isMonsterCard(): boolean
   }
 
   class Deck {
-    + List<Cards> userDeck
+    - List<Card> userDeck
+    + addCard(Card card)
+    + removeCard(Card card)
+    + getDeck(): List<Card>
   }
 
   class Stack {
     - List<Card> userStack
+    + addCard(Card card)
+    + removeCard(Card card)
+    + getStack(): List<Card>
   }
 
   class MonsterCard extends Card {
@@ -41,8 +49,8 @@ package "MTCG" {
   }
 
   class Package {
-    - List<Card> package
-    + getCards()
+    - List<Card> packageCards
+    + getCards(): List<Card>
   }
 
   class Battle {
@@ -61,13 +69,13 @@ package "MTCG" {
 
   User *-- Deck : has
   User *-- Stack : has
-  User  *--  Package : acquires (4 coins)
-  Battle  o--  User : starts
-  User  --  Trade : creates
-  Trade  --  Card : involves
-  Package  *--  Card : contains
-  Deck  *--  Card : contains
-  Stack  *--  Card : contains
+  User *-- Package : acquires (4 coins)
+  Battle o-- User : starts
+  User -- Trade : creates
+  Trade -- Card : involves
+  Package *-- Card : contains
+  Deck *-- Card : contains
+  Stack *-- Card : contains
 
 }
 
