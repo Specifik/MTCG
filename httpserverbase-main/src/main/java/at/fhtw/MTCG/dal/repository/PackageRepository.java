@@ -72,7 +72,8 @@ public class PackageRepository {
                             resultSet.getString("name"),
                             resultSet.getDouble("damage"),
                             resultSet.getString("element_type"),
-                            packageId
+                            packageId,
+                            resultSet.getInt("user_id")
                     );
                     cards.add(card);
                 }
