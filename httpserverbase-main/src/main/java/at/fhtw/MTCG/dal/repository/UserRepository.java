@@ -63,6 +63,7 @@ public class UserRepository {
 
     // Method to find a user by token
     public User findUserByToken(String token) {
+        token = token.replace("Bearer ", "");
         try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
                 "SELECT * FROM users WHERE token = ?")) {
             preparedStatement.setString(1, token);
@@ -169,6 +170,17 @@ public class UserRepository {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new DataAccessException("Error updating user logged-in state", e);
+        }
+    }
+
+    public boolean updateUserCoins(String username, int newCoins) {
+        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+                "UPDATE users SET coins = ? WHERE username = ?")) {
+            preparedStatement.setInt(1, newCoins);
+            preparedStatement.setString(2, username);
+            return preparedStatement.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DataAccessException("Error updating user coins", e);
         }
     }
 }

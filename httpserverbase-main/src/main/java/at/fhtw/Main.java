@@ -24,6 +24,7 @@ public class Main {
         router.addService("/users", new UserService());
         router.addService("/sessions", new UserService());
         router.addService("/packages", new PackageService());
+        router.addService("/transactions/packages", new PackageService());
         router.addService("/echo", new EchoService());
 
         return router;

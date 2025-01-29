@@ -15,12 +15,10 @@ public class Request {
     private String body;
 
     public String getServiceRoute(){
-        if (this.pathParts == null ||
-                this.pathParts.isEmpty()) {
+        if (this.pathParts == null || this.pathParts.isEmpty()) {
             return null;
         }
-
-        return '/' + this.pathParts.get(0);
+        return '/' + String.join("/", this.pathParts); // Fügt alle Pfadteile zusammen
     }
 
     public String getUrlContent(){
