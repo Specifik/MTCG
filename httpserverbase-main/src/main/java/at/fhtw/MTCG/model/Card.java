@@ -15,6 +15,8 @@ public class Card {
     private String elementType;
     @JsonAlias({"packageId"})
     private UUID packageId;
+    @JsonAlias({"userId"})
+    private UUID userId;
 
     // Jackson needs the default constructor
     public Card() {}

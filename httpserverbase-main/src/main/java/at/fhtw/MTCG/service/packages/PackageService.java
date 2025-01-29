@@ -21,16 +21,13 @@ public class PackageService implements Service {
         System.out.println("DEBUG: Trimmed Pathname - '" + request.getPathname().trim() + "'");
 
         if ("POST".equalsIgnoreCase(request.getMethod().toString()) && request.getServiceRoute().trim().equalsIgnoreCase("/packages")) {
-            System.out.println("DEBUG: Route matched! Calling createPackage()");
             return packageController.createPackage(request);
         }
 
         if ("POST".equalsIgnoreCase(request.getMethod().toString()) && request.getPathname().trim().equalsIgnoreCase("/transactions/packages")) {
-            System.out.println("DEBUG: Route matched! Calling acquirePackage()");
             return packageController.acquirePackage(request);
         }
 
-        System.out.println("DEBUG: No matching route found, returning 405.");
         return new Response(HttpStatus.METHOD_NOT_ALLOWED, ContentType.JSON,"{ \"message\": \"Method Not Allowed\" }");
     }
 

@@ -1,5 +1,6 @@
 package at.fhtw;
 
+import at.fhtw.MTCG.service.deck.DeckService;
 import at.fhtw.MTCG.service.packages.PackageService;
 import at.fhtw.httpserver.server.Server;
 import at.fhtw.httpserver.utils.Router;
@@ -25,6 +26,7 @@ public class Main {
         router.addService("/sessions", new UserService());
         router.addService("/packages", new PackageService());
         router.addService("/transactions/packages", new PackageService());
+        router.addService("/deck", new DeckService());
         router.addService("/echo", new EchoService());
 
         return router;
