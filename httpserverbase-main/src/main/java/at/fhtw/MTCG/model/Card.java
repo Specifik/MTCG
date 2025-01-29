@@ -2,33 +2,36 @@ package at.fhtw.MTCG.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 
+import java.util.UUID;
+
 public class Card {
     @JsonAlias({"id"})
-    private int id;
+    private UUID id;
     @JsonAlias({"name"})
     private String name;
     @JsonAlias({"damage"})
-    private final int damage;
+    private double damage;
     @JsonAlias({"elementType"})
     private String elementType;
+    @JsonAlias({"packageId"})
+    private UUID packageId;
 
     // Jackson needs the default constructor
-    public Card() {
-        this.damage = 0;
-    }
+    public Card() {}
 
-    public Card(int id, String name, int damage, String elementType) {
+    public Card(UUID id, String name, double damage, String elementType, UUID packageId) {
         this.id = id;
         this.name = name;
         this.damage = damage;
         this.elementType = elementType;
+        this.packageId = packageId;
     }
 
-    public int getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -40,8 +43,12 @@ public class Card {
         this.name = name;
     }
 
-    public int getDamage() {
+    public double getDamage() {
         return damage;
+    }
+
+    public void setDamage(double damage) {
+        this.damage = damage;
     }
 
     public String getElementType() {
@@ -50,6 +57,14 @@ public class Card {
 
     public void setElementType(String elementType) {
         this.elementType = elementType;
+    }
+
+    public UUID getPackageId() {
+        return packageId;
+    }
+
+    public void setPackageId(UUID packageId) {
+        this.packageId = packageId;
     }
 
     public boolean isSpellCard() {

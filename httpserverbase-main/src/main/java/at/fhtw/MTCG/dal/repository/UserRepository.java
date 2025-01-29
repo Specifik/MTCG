@@ -14,7 +14,7 @@ import java.util.List;
 import org.postgresql.util.PSQLException;
 
 public class UserRepository {
-    private UnitOfWork unitOfWork;
+    private final UnitOfWork unitOfWork;
 
     public UserRepository(UnitOfWork unitOfWork) {
         this.unitOfWork = unitOfWork;
