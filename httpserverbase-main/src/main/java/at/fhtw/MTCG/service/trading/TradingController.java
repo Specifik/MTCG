@@ -88,18 +88,18 @@ public class TradingController {
             }
             System.out.println("DEBUG: User gefunden - ID: " + user.getId());
 
-            // Prüfen, ob die Trading-ID korrekt ist
-            if (request.getPathParts().size() < 2) {
-                System.out.println("DEBUG: Keine Trading-ID in der URL gefunden!");
-                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid trading ID\" }");
-            }
             UUID tradingId = UUID.fromString(request.getPathParts().get(1));
-            System.out.println("DEBUG: Trading-ID: " + tradingId);
+            UUID offeredCardId = new ObjectMapper().readValue(request.getBody(), UUID.class);
 
-            return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Debugging abgeschlossen, Trading-Logik folgt\" }");
+            boolean success = tradingRepository.tradeCard(tradingId, user.getId(), offeredCardId);
+
+            return success
+                    ? new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Trade erfolgreich!\" }")
+                    : new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Trade fehlgeschlagen. Anforderungen nicht erfüllt oder ungültiger Trade.\" }");
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
+
 }

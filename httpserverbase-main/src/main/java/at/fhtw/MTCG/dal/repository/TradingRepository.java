@@ -92,7 +92,7 @@ public class TradingRepository {
             }
             System.out.println("DEBUG: Gefundenes Trading-Angebot: " + trading.getId());
 
-            //Sicherstellen, dass der Benutzer nicht gegen sich selbst tradet
+            // Sicherstellen, dass der Benutzer nicht gegen sich selbst tradet
             if (trading.getUserId() == userId) {
                 System.out.println("DEBUG: User versucht gegen sich selbst zu traden!");
                 return false;
@@ -148,4 +148,5 @@ public class TradingRepository {
             throw new DataAccessException("Error processing trade", e);
         }
     }
+
 }
