@@ -65,4 +65,41 @@ public class TradingController {
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
+
+    public Response tradeCard(Request request) {
+        System.out.println("DEBUG: `POST /tradings/{id}` wurde im TradingController aufgerufen!");
+
+        String token = request.getHeaderMap().getHeader("Authorization");
+        if (token == null) {
+            System.out.println("DEBUG: Kein Token erhalten!");
+            return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
+        }
+
+        try (UnitOfWork unitOfWork = new UnitOfWork()) {
+            UserRepository userRepository = new UserRepository(unitOfWork);
+            TradingRepository tradingRepository = new TradingRepository(unitOfWork);
+
+            System.out.println("DEBUG: Trade-Request erhalten!");
+
+            User user = userRepository.findUserByToken(token);
+            if (user == null) {
+                System.out.println("DEBUG: Ungültiger Token!");
+                return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Invalid token\" }");
+            }
+            System.out.println("DEBUG: User gefunden - ID: " + user.getId());
+
+            // Prüfen, ob die Trading-ID korrekt ist
+            if (request.getPathParts().size() < 2) {
+                System.out.println("DEBUG: Keine Trading-ID in der URL gefunden!");
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid trading ID\" }");
+            }
+            UUID tradingId = UUID.fromString(request.getPathParts().get(1));
+            System.out.println("DEBUG: Trading-ID: " + tradingId);
+
+            return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Debugging abgeschlossen, Trading-Logik folgt\" }");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
+        }
+    }
 }

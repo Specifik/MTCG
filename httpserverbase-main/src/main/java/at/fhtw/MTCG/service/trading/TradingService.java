@@ -11,15 +11,28 @@ public class TradingService implements Service {
 
     @Override
     public Response handleRequest(Request request) {
+        System.out.println("DEBUG: `handleRequest()` in TradingService aufgerufen! Methode: " + request.getMethod() + ", Route: " + request.getServiceRoute());
+
         if ("GET".equalsIgnoreCase(request.getMethod().toString())) {
             return tradingController.getAllTradings(request);
         }
+
         if ("POST".equalsIgnoreCase(request.getMethod().toString())) {
-            return tradingController.createTrading(request);
+            if (request.getPathParts().size() == 1) {
+                System.out.println("DEBUG: `POST /tradings` erkannt!");
+                return tradingController.createTrading(request);
+            }
+            if (request.getPathParts().size() == 2) {
+                System.out.println("DEBUG: `POST /tradings/{id}` erkannt!");
+                return tradingController.tradeCard(request);
+            }
         }
+
         if ("DELETE".equalsIgnoreCase(request.getMethod().toString()) && request.getPathParts().size() > 1) {
+            System.out.println("DEBUG: `DELETE /tradings/{id}` erkannt!");
             return tradingController.deleteTrading(request);
         }
+
         return new Response(HttpStatus.METHOD_NOT_ALLOWED, ContentType.JSON,"{ \"message\": \"Method Not Allowed\" }");
     }
 }

@@ -14,16 +14,17 @@ public class Request {
     private HeaderMap headerMap =  new HeaderMap();
     private String body;
 
-    public String getServiceRoute(){
+    public String getServiceRoute() {
         if (this.pathParts == null || this.pathParts.isEmpty()) {
             return null;
         }
-        // Falls die Route aus mehr als einem Teil besteht und eine ID enthält (z. B. "/tradings/{id}"), nur den Hauptpfad zurückgeben
-        if (this.pathParts.size() > 1 && this.pathParts.get(0).equals("tradings")) {
+
+        // Falls die Route ein Trading-Angebot mit ID ist (z. B. "/tradings/{id}"), dann nur "/tradings" zurückgeben
+        if (this.pathParts.size() == 2 && this.pathParts.get(0).equals("tradings")) {
             return "/tradings";
         }
 
-        // Falls es sich um eine mehrteilige Standardroute handelt (z. B. "/transactions/packages"), diese komplett zurückgeben
+        // Falls es eine reguläre Route mit mehreren Pfaden ist (z. B. "/transactions/packages"), diese beibehalten
         return '/' + String.join("/", this.pathParts);
     }
 
