@@ -11,7 +11,6 @@ public class ScoreboardService implements Service {
 
     @Override
     public Response handleRequest(Request request) {
-        System.out.println("DEBUG: `handleRequest()` in ScoreboardService aufgerufen! Methode: " + request.getMethod() + ", Route: " + request.getServiceRoute());
 
         if ("GET".equalsIgnoreCase(request.getMethod().toString())) {
             return scoreboardController.getScoreboard(request);

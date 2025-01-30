@@ -11,10 +11,8 @@ public class StatsService implements Service {
 
     @Override
     public Response handleRequest(Request request) {
-        System.out.println("DEBUG: `handleRequest()` in StatsService aufgerufen! Methode: " + request.getMethod() + ", Route: " + request.getServiceRoute());
 
         if ("GET".equalsIgnoreCase(request.getMethod().toString())) {
-            System.out.println("DEBUG: `GET /stats` erkannt!");
             return statsController.getStats(request);
         }
 

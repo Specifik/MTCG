@@ -17,7 +17,6 @@ public class ScoreboardController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Response getScoreboard(Request request) {
-        System.out.println("DEBUG: `GET /scoreboard` wurde im ScoreboardController aufgerufen!");
 
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {

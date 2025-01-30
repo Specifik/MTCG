@@ -14,7 +14,6 @@ public class StatsController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Response getStats(Request request) {
-        System.out.println("DEBUG: `GET /stats` wurde im StatsController aufgerufen!");
 
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
