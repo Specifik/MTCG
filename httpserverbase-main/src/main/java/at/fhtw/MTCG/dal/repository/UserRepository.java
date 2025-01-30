@@ -39,28 +39,6 @@ public class UserRepository {
         }
     }
 
-    // Method to find a user by username
-    public User findUserByUsername(String username) {
-        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
-                "SELECT * FROM users WHERE username = ?")) {
-            preparedStatement.setString(1, username);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                return new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("username"),
-                        resultSet.getString("password"),
-                        resultSet.getInt("coins"),
-                        resultSet.getString("token"),
-                        resultSet.getBoolean("logged_in")
-                );
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error retrieving user by username", e);
-        }
-        return null;
-    }
-
     // Method to find a user by token
     public User findUserByToken(String token) {
         token = token.replace("Bearer ", "");
@@ -73,7 +51,10 @@ public class UserRepository {
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
                         resultSet.getString("password"),
+                        resultSet.getString("name"),
                         resultSet.getInt("coins"),
+                        resultSet.getString("bio"),
+                        resultSet.getString("image"),
                         resultSet.getString("token"),
                         resultSet.getBoolean("logged_in")
                 );
@@ -83,7 +64,6 @@ public class UserRepository {
         }
         return null;
     }
-
 
     public boolean updateUserToken(String token, String username) {
         if (username == null) {
@@ -130,8 +110,13 @@ public class UserRepository {
                 users.add(new User(
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
-                        resultSet.getString("password"),
-                        resultSet.getInt("coins")
+                        null,
+                        resultSet.getString("name"),
+                        resultSet.getInt("coins"),
+                        resultSet.getString("bio"),
+                        resultSet.getString("image"),
+                        resultSet.getString("token"),
+                        resultSet.getBoolean("logged_in")
                 ));
             }
         } catch (SQLException e) {
@@ -152,7 +137,12 @@ public class UserRepository {
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
                         resultSet.getString("password"),
-                        resultSet.getInt("coins")
+                        resultSet.getString("name"),
+                        resultSet.getInt("coins"),
+                        resultSet.getString("bio"),
+                        resultSet.getString("image"),
+                        resultSet.getString("token"),
+                        resultSet.getBoolean("logged_in")
                 );
             }
         } catch (SQLException e) {
@@ -183,4 +173,25 @@ public class UserRepository {
             throw new DataAccessException("Error updating user coins", e);
         }
     }
+
+    public boolean updateUserData(String username, String newName, String newBio, String newImage) {
+        try (PreparedStatement stmt = unitOfWork.prepareStatement(
+                "UPDATE users SET name = ?, bio = ?, image = ? WHERE username = ?")) {
+
+            stmt.setString(1, newName);
+            stmt.setString(2, newBio);
+            stmt.setString(3, newImage);
+            stmt.setString(4, username);
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                unitOfWork.commitTransaction();
+                return true;
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new DataAccessException("Error updating user data", e);
+        }
+    }
+
 }
