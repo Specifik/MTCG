@@ -11,6 +11,8 @@ import at.fhtw.httpserver.http.HttpStatus;
 import at.fhtw.httpserver.server.Request;
 import at.fhtw.httpserver.server.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -19,25 +21,62 @@ public class PackageController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Response createPackage(Request request) {
-        try (UnitOfWork unitOfWork = new UnitOfWork()) {
-            System.out.println("DEBUG: Raw Request Body - " + request.getBody());
+        System.out.println("DEBUG: `POST /packages` wurde im PackageController aufgerufen!");
 
-            Package cardPackage = objectMapper.readValue(request.getBody(), Package.class);
+        String token = request.getHeaderMap().getHeader("Authorization");
+        if (token == null) {
+            return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
+        }
+
+        try (UnitOfWork unitOfWork = new UnitOfWork()) {
+            UserRepository userRepository = new UserRepository(unitOfWork);
             PackageRepository packageRepository = new PackageRepository(unitOfWork);
 
-            boolean success = packageRepository.createPackage(cardPackage);
-            if (success) {
-                unitOfWork.commitTransaction();
-                return new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Package created successfully\" }");
-            } else {
-                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Failed to create package\" }");
+            User user = userRepository.findUserByToken(token);
+            if (user == null || !user.getUsername().equals("admin")) {
+                return new Response(HttpStatus.FORBIDDEN, ContentType.JSON, "{ \"message\": \"Only admin can create packages\" }");
             }
-        } catch (JsonProcessingException e) {
-            return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid JSON format\" }");
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<Card> cards;
+
+            try {
+                // Debugging: Loggen, was `cURL` tatsächlich sendet
+                System.out.println("DEBUG: Raw Request Body - " + request.getBody());
+
+                // Versuch 1: JSON direkt als Liste verarbeiten (cURL-Format)
+                cards = objectMapper.readValue(request.getBody(), new TypeReference<List<Card>>() {});
+                System.out.println("DEBUG: JSON-Format als Liste erkannt.");
+            } catch (Exception e) {
+                // Versuch 2: Falls Fehler, versuche das Format mit "cards": [...]
+                try {
+                    JsonNode rootNode = objectMapper.readTree(request.getBody());
+                    JsonNode cardsNode = rootNode.get("cards");
+                    if (cardsNode == null || !cardsNode.isArray()) {
+                        return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid JSON format\" }");
+                    }
+                    cards = objectMapper.readValue(cardsNode.toString(), new TypeReference<List<Card>>() {});
+                    System.out.println("DEBUG: JSON-Format mit \"cards\": [] erkannt.");
+                } catch (Exception ex) {
+                    return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid JSON format\" }");
+                }
+            }
+
+            if (cards.size() != 5) {
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"A package must contain exactly 5 cards\" }");
+            }
+
+            boolean success = packageRepository.createPackage(new Package(cards));
+
+            return success
+                    ? new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Package created successfully\" }")
+                    : new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Could not create package\" }");
         } catch (Exception e) {
+            e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
+
 
     public Response acquirePackage(Request request) {
         String token = request.getHeaderMap().getHeader("Authorization");

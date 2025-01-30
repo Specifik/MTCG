@@ -24,24 +24,49 @@ public class PackageRepository {
 
             UUID packageId = UUID.randomUUID();
             packageStmt.setObject(1, packageId);
-            packageStmt.executeUpdate();
+            int packageResult = packageStmt.executeUpdate();
+            System.out.println("DEBUG: Package INSERT Result = " + packageResult);
+            System.out.println("DEBUG: Created Package ID = " + packageId);
 
             for (Card card : cardPackage.getCards()) {
+                // Prüfen, ob die Karte bereits existiert
+                boolean cardExists = false;
+                try (PreparedStatement checkStmt = unitOfWork.prepareStatement(
+                        "SELECT id FROM cards WHERE id = ?")) {
+                    checkStmt.setObject(1, card.getId());
+                    ResultSet rs = checkStmt.executeQuery();
+                    if (rs.next()) {
+                        cardExists = true;
+                    }
+                }
+
+                if (cardExists) {
+                    System.out.println("DEBUG: Karte mit ID " + card.getId() + " existiert bereits und wird nicht erneut eingefügt.");
+                    continue;
+                }
+
                 try (PreparedStatement cardStmt = unitOfWork.prepareStatement(
                         "INSERT INTO cards (id, name, damage, element_type, package_id) VALUES (?, ?, ?, ?, ?)")) {
 
                     cardStmt.setObject(1, card.getId());
                     cardStmt.setString(2, card.getName());
                     cardStmt.setDouble(3, card.getDamage());
-                    cardStmt.setString(4, card.getElementType());
+
+                    String elementType = card.getElementType() != null ? card.getElementType() : "normal";
+                    cardStmt.setString(4, elementType);
                     cardStmt.setObject(5, packageId);
-                    cardStmt.executeUpdate();
+
+                    int cardResult = cardStmt.executeUpdate();
+                    System.out.println("DEBUG: Card INSERT Result = " + cardResult + " for Card ID " + card.getId());
                 }
             }
 
+            unitOfWork.commitTransaction();
+            System.out.println("DEBUG: Transaction committed.");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
+            unitOfWork.rollbackTransaction();
             return false;
         }
     }

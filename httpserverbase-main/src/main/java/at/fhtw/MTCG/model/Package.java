@@ -1,24 +1,25 @@
 package at.fhtw.MTCG.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class Package {
-    @JsonAlias({"cards"})
-    private List<Card> packageCards;
+    private List<Card> cards;
 
-    // Jackson needs the default constructor
+    // Jackson benötigt einen leeren Konstruktor
     public Package() {}
 
-    public Package(List<Card> packageCards) {
-        this.packageCards = packageCards;
+    @JsonCreator
+    public Package(List<Card> cards) {
+        this.cards = cards;
     }
 
     public List<Card> getCards() {
-        return packageCards;
+        return cards;
     }
 
-    public void setCards(List<Card> packageCards) {
-        this.packageCards = packageCards;
+    public void setCards(List<Card> cards) {
+        this.cards = cards;
     }
 }

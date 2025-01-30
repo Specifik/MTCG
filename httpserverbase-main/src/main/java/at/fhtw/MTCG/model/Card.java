@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.UUID;
 
 public class Card {
-    @JsonAlias({"id"})
+    @JsonAlias({"id", "Id", "ID"})
     private UUID id;
-    @JsonAlias({"name"})
+    @JsonAlias({"name", "Name"})
     private String name;
-    @JsonAlias({"damage"})
+    @JsonAlias({"damage", "Damage"})
     private double damage;
-    @JsonAlias({"elementType"})
+    @JsonAlias({"elementType", "ElementType"})
     private String elementType;
     @JsonAlias({"packageId"})
     private UUID packageId;
