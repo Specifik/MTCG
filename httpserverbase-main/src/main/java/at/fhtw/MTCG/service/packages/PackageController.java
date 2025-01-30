@@ -44,11 +44,11 @@ public class PackageController {
                 // Debugging: Loggen, was `cURL` tatsächlich sendet
                 System.out.println("DEBUG: Raw Request Body - " + request.getBody());
 
-                // Versuch 1: JSON direkt als Liste verarbeiten (cURL-Format)
+                // JSON direkt als Liste verarbeiten (cURL-Format)
                 cards = objectMapper.readValue(request.getBody(), new TypeReference<List<Card>>() {});
                 System.out.println("DEBUG: JSON-Format als Liste erkannt.");
             } catch (Exception e) {
-                // Versuch 2: Falls Fehler, versuche das Format mit "cards": [...]
+                // Falls Fehler, versuche das Format mit "cards": [...]
                 try {
                     JsonNode rootNode = objectMapper.readTree(request.getBody());
                     JsonNode cardsNode = rootNode.get("cards");

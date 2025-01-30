@@ -73,17 +73,21 @@ public class PackageRepository {
 
     public List<Card> acquirePackage(int userId) {
         try {
+            System.out.println("DEBUG: User " + userId + " versucht, ein Package zu kaufen...");
+
             UUID packageId = null;
             try (PreparedStatement findPackageStmt = unitOfWork.prepareStatement(
-                    "SELECT id FROM packages ORDER BY RANDOM() LIMIT 1")) {
+                    "SELECT id FROM packages ORDER BY created_at ASC LIMIT 1")) { // Ändere Reihenfolge
                 ResultSet resultSet = findPackageStmt.executeQuery();
                 if (resultSet.next()) {
                     packageId = (UUID) resultSet.getObject("id");
+                    System.out.println("DEBUG: Gefundenes Package ID: " + packageId);
                 }
             }
 
             if (packageId == null) {
-                return null; // Kein Paket verfügbar
+                System.out.println("DEBUG: Kein verfügbares Package gefunden!");
+                return null;
             }
 
             List<Card> cards = new ArrayList<>();
@@ -104,19 +108,28 @@ public class PackageRepository {
                 }
             }
 
+            if (cards.isEmpty()) {
+                System.out.println("DEBUG: Keine Karten in diesem Package gefunden!");
+                return null;
+            }
+
+            System.out.println("DEBUG: " + cards.size() + " Karten gefunden. Aktualisiere Kartenbesitz...");
             try (PreparedStatement updateOwnerStmt = unitOfWork.prepareStatement(
                     "UPDATE cards SET user_id = ?, package_id = NULL WHERE package_id = ?")) {
                 updateOwnerStmt.setInt(1, userId);
                 updateOwnerStmt.setObject(2, packageId);
-                updateOwnerStmt.executeUpdate();
+                int updatedRows = updateOwnerStmt.executeUpdate();
+                System.out.println("DEBUG: Kartenbesitz für " + updatedRows + " Karten geändert.");
             }
 
             try (PreparedStatement deletePackageStmt = unitOfWork.prepareStatement(
                     "DELETE FROM packages WHERE id = ?")) {
                 deletePackageStmt.setObject(1, packageId);
-                deletePackageStmt.executeUpdate();
+                int deletedRows = deletePackageStmt.executeUpdate();
+                System.out.println("DEBUG: Paket gelöscht. Anzahl gelöschter Zeilen: " + deletedRows);
             }
 
+            unitOfWork.commitTransaction();
             return cards;
         } catch (SQLException e) {
             throw new DataAccessException("Error acquiring package", e);
