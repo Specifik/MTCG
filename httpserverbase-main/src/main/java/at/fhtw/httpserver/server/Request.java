@@ -18,7 +18,13 @@ public class Request {
         if (this.pathParts == null || this.pathParts.isEmpty()) {
             return null;
         }
-        return '/' + String.join("/", this.pathParts); // Fügt alle Pfadteile zusammen
+        // Falls die Route aus mehr als einem Teil besteht und eine ID enthält (z. B. "/tradings/{id}"), nur den Hauptpfad zurückgeben
+        if (this.pathParts.size() > 1 && this.pathParts.get(0).equals("tradings")) {
+            return "/tradings";
+        }
+
+        // Falls es sich um eine mehrteilige Standardroute handelt (z. B. "/transactions/packages"), diese komplett zurückgeben
+        return '/' + String.join("/", this.pathParts);
     }
 
     public String getUrlContent(){
