@@ -14,12 +14,6 @@ public class PackageService implements Service {
     @Override
     public Response handleRequest(Request request) {
 
-        System.out.println("DEBUG: Incoming request - " + request.getMethod() + " " + request.getPathname());
-        System.out.println("DEBUG: Processed Service Route - '" + request.getServiceRoute().trim() + "'");
-        System.out.println("DEBUG: Authorization Header - " + request.getHeaderMap().getHeader("Authorization"));
-        System.out.println("DEBUG: Raw Pathname - '" + request.getPathname() + "'");
-        System.out.println("DEBUG: Trimmed Pathname - '" + request.getPathname().trim() + "'");
-
         if ("POST".equalsIgnoreCase(request.getMethod().toString()) && request.getServiceRoute().trim().equalsIgnoreCase("/packages")) {
             return packageController.createPackage(request);
         }

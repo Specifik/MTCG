@@ -21,7 +21,6 @@ public class PackageController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Response createPackage(Request request) {
-        System.out.println("DEBUG: `POST /packages` wurde im PackageController aufgerufen!");
 
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null) {
@@ -41,14 +40,11 @@ public class PackageController {
             List<Card> cards;
 
             try {
-                // Debugging: Loggen, was `cURL` tatsächlich sendet
-                System.out.println("DEBUG: Raw Request Body - " + request.getBody());
-
-                // JSON direkt als Liste verarbeiten (cURL-Format)
+                // JSON direkt als Liste verarbeiten
                 cards = objectMapper.readValue(request.getBody(), new TypeReference<List<Card>>() {});
-                System.out.println("DEBUG: JSON-Format als Liste erkannt.");
+
             } catch (Exception e) {
-                // Falls Fehler, versuche das Format mit "cards": [...]
+                // Falls Fehler, versuche das Format mit cards: [ ]
                 try {
                     JsonNode rootNode = objectMapper.readTree(request.getBody());
                     JsonNode cardsNode = rootNode.get("cards");
@@ -77,7 +73,6 @@ public class PackageController {
         }
     }
 
-
     public Response acquirePackage(Request request) {
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null || token.isEmpty()) {
@@ -97,16 +92,16 @@ public class PackageController {
                 return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Not enough coins\" }");
             }
 
-            List<Card> acquiredCards = packageRepository.acquirePackage(user.getId());
-            if (acquiredCards == null || acquiredCards.isEmpty()) {
+            boolean packageAcquired = packageRepository.acquirePackage(user.getId());
+
+            if (!packageAcquired) {
                 return new Response(HttpStatus.NOT_FOUND, ContentType.JSON, "{ \"message\": \"No packages available\" }");
             }
 
             userRepository.updateUserCoins(user.getUsername(), user.getCoins() - 5);
             unitOfWork.commitTransaction();
 
-            String responseBody = objectMapper.writeValueAsString(acquiredCards);
-            return new Response(HttpStatus.OK, ContentType.JSON, responseBody);
+            return new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Package successfully acquired\" }");
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");

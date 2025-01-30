@@ -24,9 +24,7 @@ public class PackageRepository {
 
             UUID packageId = UUID.randomUUID();
             packageStmt.setObject(1, packageId);
-            int packageResult = packageStmt.executeUpdate();
-            System.out.println("DEBUG: Package INSERT Result = " + packageResult);
-            System.out.println("DEBUG: Created Package ID = " + packageId);
+            packageStmt.executeUpdate();
 
             for (Card card : cardPackage.getCards()) {
                 // Prüfen, ob die Karte bereits existiert
@@ -56,13 +54,11 @@ public class PackageRepository {
                     cardStmt.setString(4, elementType);
                     cardStmt.setObject(5, packageId);
 
-                    int cardResult = cardStmt.executeUpdate();
-                    System.out.println("DEBUG: Card INSERT Result = " + cardResult + " for Card ID " + card.getId());
+                    cardStmt.executeUpdate();
                 }
             }
 
             unitOfWork.commitTransaction();
-            System.out.println("DEBUG: Transaction committed.");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -71,23 +67,20 @@ public class PackageRepository {
         }
     }
 
-    public List<Card> acquirePackage(int userId) {
+    public boolean acquirePackage(int userId) {
         try {
-            System.out.println("DEBUG: User " + userId + " versucht, ein Package zu kaufen...");
-
             UUID packageId = null;
             try (PreparedStatement findPackageStmt = unitOfWork.prepareStatement(
-                    "SELECT id FROM packages ORDER BY created_at ASC LIMIT 1")) { // Ändere Reihenfolge
+                    "SELECT id FROM packages ORDER BY created_at ASC LIMIT 1")) { // Änderung Reihenfolge
                 ResultSet resultSet = findPackageStmt.executeQuery();
                 if (resultSet.next()) {
                     packageId = (UUID) resultSet.getObject("id");
-                    System.out.println("DEBUG: Gefundenes Package ID: " + packageId);
                 }
             }
 
             if (packageId == null) {
                 System.out.println("DEBUG: Kein verfügbares Package gefunden!");
-                return null;
+                return false;
             }
 
             List<Card> cards = new ArrayList<>();
@@ -110,27 +103,24 @@ public class PackageRepository {
 
             if (cards.isEmpty()) {
                 System.out.println("DEBUG: Keine Karten in diesem Package gefunden!");
-                return null;
+                return false;
             }
 
-            System.out.println("DEBUG: " + cards.size() + " Karten gefunden. Aktualisiere Kartenbesitz...");
             try (PreparedStatement updateOwnerStmt = unitOfWork.prepareStatement(
                     "UPDATE cards SET user_id = ?, package_id = NULL WHERE package_id = ?")) {
                 updateOwnerStmt.setInt(1, userId);
                 updateOwnerStmt.setObject(2, packageId);
-                int updatedRows = updateOwnerStmt.executeUpdate();
-                System.out.println("DEBUG: Kartenbesitz für " + updatedRows + " Karten geändert.");
+                updateOwnerStmt.executeUpdate();
             }
 
             try (PreparedStatement deletePackageStmt = unitOfWork.prepareStatement(
                     "DELETE FROM packages WHERE id = ?")) {
                 deletePackageStmt.setObject(1, packageId);
-                int deletedRows = deletePackageStmt.executeUpdate();
-                System.out.println("DEBUG: Paket gelöscht. Anzahl gelöschter Zeilen: " + deletedRows);
+                deletePackageStmt.executeUpdate();
             }
 
             unitOfWork.commitTransaction();
-            return cards;
+            return true;
         } catch (SQLException e) {
             throw new DataAccessException("Error acquiring package", e);
         }
