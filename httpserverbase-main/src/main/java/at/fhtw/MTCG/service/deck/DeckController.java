@@ -39,7 +39,6 @@ public class DeckController {
 
             // Check if the request asks for "plain" format
             if ("format=plain".equals(format)) {
-                System.out.println("DEBUG: Returning deck in plain text format.");
                 StringBuilder plainTextDeck = new StringBuilder();
                 plainTextDeck.append("User: ").append(user.getUsername()).append("\n");
                 plainTextDeck.append("Deck:\n");
@@ -60,7 +59,6 @@ public class DeckController {
 
 
     public Response updateDeck(Request request) {
-        System.out.println("DEBUG: PUT /deck wurde im DeckController aufgerufen!");
 
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null) {
@@ -75,7 +73,6 @@ public class DeckController {
             if (user == null) {
                 return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Invalid token\" }");
             }
-            System.out.println("DEBUG: Received User ID - " + user.getId());
 
             ObjectMapper objectMapper = new ObjectMapper();
             List<UUID> cardIds;
@@ -83,7 +80,6 @@ public class DeckController {
             try {
                 // JSON direkt als Liste verarbeiten (["id1", "id2", "id3", "id4"])
                 cardIds = objectMapper.readValue(request.getBody(), new TypeReference<List<UUID>>() {});
-                System.out.println("DEBUG: JSON-Format als Array erkannt.");
             } catch (Exception e) {
                 // Falls Fehler, versuche das Format {"cardIds": [...]}
                 try {
@@ -93,7 +89,6 @@ public class DeckController {
                         return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid JSON format\" }");
                     }
                     cardIds = objectMapper.readValue(cardIdsNode.toString(), new TypeReference<List<UUID>>() {});
-                    System.out.println("DEBUG: JSON-Format mit cardIds-Array erkannt.");
                 } catch (Exception ex) {
                     return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid JSON format\" }");
                 }

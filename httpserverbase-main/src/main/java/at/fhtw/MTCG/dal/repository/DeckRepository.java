@@ -34,25 +34,21 @@ public class DeckRepository {
 
     public boolean updateDeck(int userId, List<UUID> cardIds) {
         if (cardIds.size() != 4) {
-            System.out.println("DEBUG: Fehler - Deck hat nicht genau 4 Karten!");
             throw new IllegalArgumentException("Deck must contain exactly 4 cards.");
         }
 
         // Prüfen, ob ALLE Karten dem User gehören
         if (!checkUserOwnsCards(userId, cardIds)) {
-            System.out.println("DEBUG: Nicht alle Karten gehören dem User! Abbruch.");
+            System.out.println("DEBUG: Nicht alle Karten gehören dem User!");
             return false;
         }
 
         try {
-            System.out.println("DEBUG: Lösche bestehendes Deck für User ID " + userId);
             try (PreparedStatement deleteStmt = unitOfWork.prepareStatement("DELETE FROM deck WHERE user_id = ?")) {
                 deleteStmt.setInt(1, userId);
-                int deletedRows = deleteStmt.executeUpdate();
-                System.out.println("DEBUG: Gelöschte Zeilen aus deck: " + deletedRows);
+                deleteStmt.executeUpdate();
             }
 
-            System.out.println("DEBUG: Füge neues Deck für User ID " + userId + " hinzu.");
             try (PreparedStatement insertStmt = unitOfWork.prepareStatement(
                     "INSERT INTO deck (user_id, card_id) VALUES (?, ?)")) {
                 for (UUID cardId : cardIds) {
@@ -60,12 +56,10 @@ public class DeckRepository {
                     insertStmt.setObject(2, cardId);
                     insertStmt.addBatch();
                 }
-                int[] insertResults = insertStmt.executeBatch();
-                System.out.println("DEBUG: Eingefügte Karten: " + insertResults.length);
+                insertStmt.executeBatch();
             }
 
             unitOfWork.commitTransaction();
-            System.out.println("DEBUG: Transaktion erfolgreich committet.");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -86,7 +80,6 @@ public class DeckRepository {
                 ResultSet rs = checkStmt.executeQuery();
                 if (rs.next()) {
                     int ownedCardCount = rs.getInt(1);
-                    System.out.println("DEBUG: Anzahl gefundener Karten im Besitz des Users: " + ownedCardCount);
 
                     // Falls der User nicht genau 4 der übergebenen Karten besitzt, ist die Bedingung nicht erfüllt
                     return ownedCardCount == 4;
