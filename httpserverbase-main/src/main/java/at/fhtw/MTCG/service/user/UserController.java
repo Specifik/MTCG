@@ -99,26 +99,22 @@ public class UserController {
 
     // GET /user/id:/token:
     public Response getUser(String username, String token) {
-        System.out.println("DEBUG: `getUser()` aufgerufen für Benutzer -> " + username);
 
         if (token == null || !token.startsWith("Bearer ")) {
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing or invalid authentication token\" }");
         }
 
         String cleanToken = token.replace("Bearer ", "");
-        System.out.println("DEBUG: Bereinigter Token -> " + cleanToken);
 
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             User user = userRepository.findUserByToken(cleanToken);
 
             if (user == null) {
-                System.out.println("DEBUG: Kein Benutzer mit diesem Token gefunden!");
                 return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Unauthorized\" }");
             }
 
             if (!user.getUsername().equals(username)) {
-                System.out.println("DEBUG: Benutzername stimmt nicht überein!");
                 return new Response(HttpStatus.FORBIDDEN, ContentType.JSON, "{ \"message\": \"Forbidden: You can only access your own profile\" }");
             }
 
