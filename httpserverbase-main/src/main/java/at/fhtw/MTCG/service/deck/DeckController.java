@@ -24,6 +24,8 @@ public class DeckController {
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
         }
 
+        String format = request.getParams(); // Get query parameters
+
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             DeckRepository deckRepository = new DeckRepository(unitOfWork);
@@ -34,11 +36,28 @@ public class DeckController {
             }
 
             Deck deck = deckRepository.getUserDeck(user.getId());
+
+            // Check if the request asks for "plain" format
+            if ("format=plain".equals(format)) {
+                System.out.println("DEBUG: Returning deck in plain text format.");
+                StringBuilder plainTextDeck = new StringBuilder();
+                plainTextDeck.append("User: ").append(user.getUsername()).append("\n");
+                plainTextDeck.append("Deck:\n");
+
+                for (UUID cardId : deck.getCardIds()) {
+                    plainTextDeck.append("- Card ID: ").append(cardId).append("\n");
+                }
+
+                return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, plainTextDeck.toString());
+            }
+
+            // Default JSON response
             return new Response(HttpStatus.OK, ContentType.JSON, objectMapper.writeValueAsString(deck));
         } catch (Exception e) {
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
+
 
     public Response updateDeck(Request request) {
         System.out.println("DEBUG: PUT /deck wurde im DeckController aufgerufen!");
@@ -85,8 +104,13 @@ public class DeckController {
                 return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"A deck must contain exactly 4 cards.\" }");
             }
 
-            boolean success = deckRepository.updateDeck(user.getId(), cardIds);
+            // Prüfen, ob ALLE Karten dem User gehören
+            boolean allCardsBelongToUser = deckRepository.checkUserOwnsCards(user.getId(), cardIds);
+            if (!allCardsBelongToUser) {
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Not all selected cards belong to user\" }");
+            }
 
+            boolean success = deckRepository.updateDeck(user.getId(), cardIds);
             return success
                     ? new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Deck updated successfully\" }")
                     : new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Could not update deck\" }");
@@ -95,6 +119,5 @@ public class DeckController {
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
-
 }
 

@@ -38,28 +38,13 @@ public class DeckRepository {
             throw new IllegalArgumentException("Deck must contain exactly 4 cards.");
         }
 
+        // Prüfen, ob ALLE Karten dem User gehören
+        if (!checkUserOwnsCards(userId, cardIds)) {
+            System.out.println("DEBUG: Nicht alle Karten gehören dem User! Abbruch.");
+            return false;
+        }
+
         try {
-            System.out.println("DEBUG: Prüfe, ob Karten dem User gehören...");
-            String sql = "SELECT id FROM cards WHERE user_id = ? AND id IN (?, ?, ?, ?)";
-            try (PreparedStatement checkStmt = unitOfWork.prepareStatement(sql)) {
-                checkStmt.setInt(1, userId);
-                for (int i = 0; i < cardIds.size(); i++) {
-                    checkStmt.setObject(i + 2, cardIds.get(i)); // Startet bei Index 2, weil Index 1 user_id ist
-                }
-
-                ResultSet rs = checkStmt.executeQuery();
-                List<UUID> validCards = new ArrayList<>();
-                while (rs.next()) {
-                    validCards.add((UUID) rs.getObject("id"));
-                }
-
-                System.out.println("DEBUG: Gefundene gültige Karten: " + validCards.size());
-                if (validCards.size() != 4) {
-                    throw new DataAccessException("Not all selected cards belong to the user or exist in the database. Found: "
-                            + validCards.size() + " of 4 expected.");
-                }
-            }
-
             System.out.println("DEBUG: Lösche bestehendes Deck für User ID " + userId);
             try (PreparedStatement deleteStmt = unitOfWork.prepareStatement("DELETE FROM deck WHERE user_id = ?")) {
                 deleteStmt.setInt(1, userId);
@@ -89,4 +74,27 @@ public class DeckRepository {
         }
     }
 
+    public boolean checkUserOwnsCards(int userId, List<UUID> cardIds) {
+        try {
+            String sql = "SELECT COUNT(*) FROM cards WHERE user_id = ? AND id IN (?, ?, ?, ?)";
+            try (PreparedStatement checkStmt = unitOfWork.prepareStatement(sql)) {
+                checkStmt.setInt(1, userId);
+                for (int i = 0; i < cardIds.size(); i++) {
+                    checkStmt.setObject(i + 2, cardIds.get(i));
+                }
+
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next()) {
+                    int ownedCardCount = rs.getInt(1);
+                    System.out.println("DEBUG: Anzahl gefundener Karten im Besitz des Users: " + ownedCardCount);
+
+                    // Falls der User nicht genau 4 der übergebenen Karten besitzt, ist die Bedingung nicht erfüllt
+                    return ownedCardCount == 4;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
