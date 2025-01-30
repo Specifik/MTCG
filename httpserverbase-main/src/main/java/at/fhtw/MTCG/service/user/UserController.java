@@ -135,8 +135,6 @@ public class UserController {
         }
     }
 
-
-
     // GET /user/token:
     public Response getAllUsers(String token) {
         if(!validateToken(token)) {

@@ -42,22 +42,12 @@ public class UserRepository {
     // Method to find a user by token
     public User findUserByToken(String token) {
         token = token.replace("Bearer ", "");
-        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+        try (PreparedStatement stmt = unitOfWork.prepareStatement(
                 "SELECT * FROM users WHERE token = ?")) {
-            preparedStatement.setString(1, token);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                return new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("username"),
-                        resultSet.getString("password"),
-                        resultSet.getString("name"),
-                        resultSet.getInt("coins"),
-                        resultSet.getString("bio"),
-                        resultSet.getString("image"),
-                        resultSet.getString("token"),
-                        resultSet.getBoolean("logged_in")
-                );
+            stmt.setString(1, token);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return createUserFromResultSet(rs);
             }
         } catch (SQLException e) {
             throw new DataAccessException("Error retrieving user by token", e);
@@ -103,21 +93,11 @@ public class UserRepository {
 
     // Method to get all users
     public List<User> findAllUsers() {
-        ArrayList<User> users = new ArrayList<>();
-        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement("SELECT * FROM users")) {
-            ResultSet resultSet = preparedStatement.executeQuery();
-            while (resultSet.next()) {
-                users.add(new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("username"),
-                        null,
-                        resultSet.getString("name"),
-                        resultSet.getInt("coins"),
-                        resultSet.getString("bio"),
-                        resultSet.getString("image"),
-                        resultSet.getString("token"),
-                        resultSet.getBoolean("logged_in")
-                ));
+        List<User> users = new ArrayList<>();
+        try (PreparedStatement stmt = unitOfWork.prepareStatement("SELECT * FROM users")) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                users.add(createUserFromResultSet(rs));
             }
         } catch (SQLException e) {
             throw new DataAccessException("Error retrieving all users", e);
@@ -127,23 +107,13 @@ public class UserRepository {
 
     // Method to find a user by username and password
     public User findUserByUsernameAndPassword(String username, String hashedPassword) {
-        try (PreparedStatement preparedStatement = unitOfWork.prepareStatement(
+        try (PreparedStatement stmt = unitOfWork.prepareStatement(
                 "SELECT * FROM users WHERE username = ? AND password = ?")) {
-            preparedStatement.setString(1, username);
-            preparedStatement.setString(2, hashedPassword);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                return new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("username"),
-                        resultSet.getString("password"),
-                        resultSet.getString("name"),
-                        resultSet.getInt("coins"),
-                        resultSet.getString("bio"),
-                        resultSet.getString("image"),
-                        resultSet.getString("token"),
-                        resultSet.getBoolean("logged_in")
-                );
+            stmt.setString(1, username);
+            stmt.setString(2, hashedPassword);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return createUserFromResultSet(rs);
             }
         } catch (SQLException e) {
             throw new DataAccessException("Error retrieving user by username and password", e);
@@ -194,4 +164,22 @@ public class UserRepository {
         }
     }
 
+    // Helper-Method for creating a User-Obj from ResultSet
+    private User createUserFromResultSet(ResultSet rs) throws SQLException {
+        return new User(
+                rs.getInt("id"),
+                rs.getString("username"),
+                rs.getString("password"),
+                rs.getString("name"),
+                rs.getInt("coins"),
+                rs.getString("bio"),
+                rs.getString("image"),
+                rs.getString("token"),
+                rs.getBoolean("logged_in"),
+                rs.getInt("elo"),
+                rs.getInt("games_played"),
+                rs.getInt("wins"),
+                rs.getInt("losses")
+        );
+    }
 }
