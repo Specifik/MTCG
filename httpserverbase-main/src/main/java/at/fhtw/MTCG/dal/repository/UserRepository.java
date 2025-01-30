@@ -164,6 +164,20 @@ public class UserRepository {
         }
     }
 
+    public List<User> getScoreboard() {
+        List<User> scoreboard = new ArrayList<>();
+        try (PreparedStatement stmt = unitOfWork.prepareStatement(
+                "SELECT * FROM users ORDER BY elo DESC")) {  // Sortierung nach ELO
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                scoreboard.add(createUserFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error retrieving scoreboard", e);
+        }
+        return scoreboard;
+    }
+
     // Helper-Method for creating a User-Obj from ResultSet
     private User createUserFromResultSet(ResultSet rs) throws SQLException {
         return new User(
