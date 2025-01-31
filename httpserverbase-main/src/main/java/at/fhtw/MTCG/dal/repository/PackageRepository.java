@@ -28,19 +28,13 @@ public class PackageRepository {
 
             for (Card card : cardPackage.getCards()) {
                 // Prüfen, ob die Karte bereits existiert
-                boolean cardExists = false;
                 try (PreparedStatement checkStmt = unitOfWork.prepareStatement(
-                        "SELECT id FROM cards WHERE id = ?")) {
+                        "SELECT COUNT(*) FROM cards WHERE id = ?")) {
                     checkStmt.setObject(1, card.getId());
                     ResultSet rs = checkStmt.executeQuery();
-                    if (rs.next()) {
-                        cardExists = true;
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        throw new DataAccessException("Karte mit ID " + card.getId() + " existiert bereits!");
                     }
-                }
-
-                if (cardExists) {
-                    System.out.println("DEBUG: Karte mit ID " + card.getId() + " existiert bereits und wird nicht erneut eingefügt.");
-                    continue;
                 }
 
                 try (PreparedStatement cardStmt = unitOfWork.prepareStatement(
@@ -61,9 +55,8 @@ public class PackageRepository {
             unitOfWork.commitTransaction();
             return true;
         } catch (SQLException e) {
-            e.printStackTrace();
             unitOfWork.rollbackTransaction();
-            return false;
+            throw new DataAccessException("Fehler beim Erstellen des Pakets", e);
         }
     }
 
@@ -71,7 +64,7 @@ public class PackageRepository {
         try {
             UUID packageId = null;
             try (PreparedStatement findPackageStmt = unitOfWork.prepareStatement(
-                    "SELECT id FROM packages ORDER BY created_at ASC LIMIT 1")) { // Änderung Reihenfolge
+                    "SELECT id FROM packages ORDER BY created_at ASC LIMIT 1")) {
                 ResultSet resultSet = findPackageStmt.executeQuery();
                 if (resultSet.next()) {
                     packageId = (UUID) resultSet.getObject("id");
@@ -79,8 +72,7 @@ public class PackageRepository {
             }
 
             if (packageId == null) {
-                System.out.println("DEBUG: Kein verfügbares Package gefunden!");
-                return false;
+                return false; // Kein Rollback nötig
             }
 
             List<Card> cards = new ArrayList<>();
@@ -102,7 +94,6 @@ public class PackageRepository {
             }
 
             if (cards.isEmpty()) {
-                System.out.println("DEBUG: Keine Karten in diesem Package gefunden!");
                 return false;
             }
 
@@ -122,7 +113,8 @@ public class PackageRepository {
             unitOfWork.commitTransaction();
             return true;
         } catch (SQLException e) {
-            throw new DataAccessException("Error acquiring package", e);
+            unitOfWork.rollbackTransaction();
+            throw new DataAccessException("Fehler beim Erwerb des Pakets", e);
         }
     }
 }

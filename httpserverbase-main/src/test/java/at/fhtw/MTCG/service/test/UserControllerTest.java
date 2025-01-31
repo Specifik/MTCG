@@ -132,4 +132,131 @@ public class UserControllerTest {
         // Assert
         assertEquals(401, response.status, "Fetching user data should return HTTP 401 if token is invalid");
     }
+
+    @Test
+    void testLoginUser_UserNotExists() {
+        // Arrange
+        Request request = mock(Request.class);
+        String hashedPassword = PasswordHasher.hashPassword("password123");
+
+        when(request.getBody()).thenReturn("{\"Username\": \"unknownUser\", \"Password\": \"password123\"}");
+        when(userRepository.findUserByUsernameAndPassword("unknownUser", hashedPassword)).thenReturn(null); // User existiert nicht
+
+        // Act
+        Response response = userController.loginUser(request);
+
+        // Assert
+        assertEquals(401, response.status, "Should return HTTP 401 if user does not exist");
+    }
+
+    @Test
+    void testUpdateUser_WrongUserToken() {
+        // Arrange
+        Request request = mock(Request.class);
+        HeaderMap headerMap = mock(HeaderMap.class);
+
+        when(request.getHeaderMap()).thenReturn(headerMap);
+        when(headerMap.getHeader("Authorization")).thenReturn("Bearer wrongUser-mtcgToken");
+
+        when(userRepository.findUserByToken("wrongUser-mtcgToken")).thenReturn(
+                new User(2, "wrongUser", "password", "Wrong User", 100, "", "", "wrongUser-mtcgToken", true, 0, 0, 0, 0)
+        );
+
+        // JSON Body für Update
+        when(request.getBody()).thenReturn("{\"Name\": \"Hacker\", \"Bio\": \"Trying to hack...\", \"Image\": \":-X\"}");
+
+        // Act
+        Response response = userController.updateUser("testUser", request); // Testet Update auf einen anderen User
+
+        // Assert
+        assertEquals(403, response.status, "Should return HTTP 403 if user tries to update another profile");
+    }
+
+    @Test
+    void testLoginUser_InvalidJson() {
+        // Arrange
+        Request request = mock(Request.class);
+
+        when(request.getBody()).thenReturn("INVALID_JSON");
+
+        // Act
+        Response response = userController.loginUser(request);
+
+        // Assert
+        assertEquals(400, response.status, "Should return HTTP 400 for invalid JSON login request");
+    }
+
+    @Test
+    void testLogoutUser_Success() {
+        // Arrange
+        Request request = mock(Request.class);
+        HeaderMap headerMap = mock(HeaderMap.class);
+
+        when(request.getHeaderMap()).thenReturn(headerMap);
+        when(headerMap.getHeader("token")).thenReturn("testUser-mtcgToken");
+
+        when(userRepository.findUserByToken("testUser-mtcgToken")).thenReturn(
+                new User(1, "testUser", "password", "Test User", 100, "", "", "testUser-mtcgToken", true, 0, 0, 0, 0)
+        );
+
+        // Act
+        Response response = userController.logoutUser(request);
+
+        // Assert
+        assertEquals(200, response.status, "Should return HTTP 200 if logout was successful");
+    }
+
+    @Test
+    void testLogoutUser_NoToken() {
+        // Arrange
+        Request request = mock(Request.class);
+        HeaderMap headerMap = mock(HeaderMap.class);
+
+        when(request.getHeaderMap()).thenReturn(headerMap);
+        when(headerMap.getHeader("token")).thenReturn(null); // Kein Token im Header
+
+        // Act
+        Response response = userController.logoutUser(request);
+
+        // Assert
+        assertEquals(401, response.status, "Should return HTTP 401 if no token is provided");
+    }
+
+    @Test
+    void testGetUser_InvalidToken() {
+        // Arrange
+        String username = "testUser";
+        String invalidToken = "invalid-mtcgToken";
+
+        when(userRepository.findUserByToken(invalidToken)).thenReturn(null);
+
+        // Act
+        Response response = userController.getUser(username, "Bearer " + invalidToken);
+
+        // Assert
+        assertEquals(401, response.status, "Should return HTTP 401 if token is invalid");
+    }
+
+    @Test
+    void testUpdateUser_Success() {
+        // Arrange
+        Request request = mock(Request.class);
+        HeaderMap headerMap = mock(HeaderMap.class);
+
+        when(request.getHeaderMap()).thenReturn(headerMap);
+        when(headerMap.getHeader("Authorization")).thenReturn("Bearer testUser-mtcgToken");
+
+        when(userRepository.findUserByToken("testUser-mtcgToken")).thenReturn(
+                new User(1, "testUser", "password", "Test User", 100, "Bio", "Image", "testUser-mtcgToken", true, 0, 0, 0, 0)
+        );
+
+        when(request.getBody()).thenReturn("{\"Name\": \"Updated Name\", \"Bio\": \"Updated Bio\", \"Image\": \":)\"}");
+        when(userRepository.updateUserData("testUser", "Updated Name", "Updated Bio", ":)")).thenReturn(true);
+
+        // Act
+        Response response = userController.updateUser("testUser", request);
+
+        // Assert
+        assertEquals(200, response.status, "Should return HTTP 200 if user update is successful");
+    }
 }
