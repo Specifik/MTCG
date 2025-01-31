@@ -1,14 +1,22 @@
 package at.fhtw.MTCG.service.user;
 
+import at.fhtw.MTCG.dal.UnitOfWork;
+import at.fhtw.MTCG.dal.repository.UserRepository;
 import at.fhtw.httpserver.http.ContentType;
 import at.fhtw.httpserver.http.HttpStatus;
-import at.fhtw.httpserver.http.Method;
 import at.fhtw.httpserver.server.Request;
 import at.fhtw.httpserver.server.Response;
 import at.fhtw.httpserver.server.Service;
 
 public class UserService implements Service {
-    private final UserController userController = new UserController();
+    private final UserController userController;
+    private final UnitOfWork unitOfWork;
+
+    public UserService() {
+        this.unitOfWork = new UnitOfWork();
+        UserRepository userRepository = new UserRepository(unitOfWork);
+        this.userController = new UserController(userRepository, unitOfWork);
+    }
 
     @Override
     public Response handleRequest(Request request) {
@@ -41,5 +49,4 @@ public class UserService implements Service {
 
         return new Response(HttpStatus.METHOD_NOT_ALLOWED, ContentType.JSON, "{ \"message\": \"Method Not Allowed\" }");
     }
-
 }

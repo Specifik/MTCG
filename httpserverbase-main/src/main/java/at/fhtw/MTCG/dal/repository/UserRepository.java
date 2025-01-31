@@ -27,14 +27,20 @@ public class UserRepository {
             preparedStatement.setString(1, username);
             preparedStatement.setString(2, password);
             int rowsAffected = preparedStatement.executeUpdate();
-            return rowsAffected > 0;
+            if (rowsAffected > 0) {
+                unitOfWork.commitTransaction();
+                return true;
+            }
+            return false;
         } catch (PSQLException e) {
-            if (e.getSQLState().equals("23505")) { // 23505 unique constraint violations in PostgreSQL
-                return false; // Username already exists
+            if (e.getSQLState().equals("23505")) { // PostgreSQL duplicate key error
+                unitOfWork.rollbackTransaction();
+                return false;
             } else {
                 throw new DataAccessException("Error registering new user", e);
             }
         } catch (SQLException e) {
+            unitOfWork.rollbackTransaction();
             throw new DataAccessException("Error registering new user", e);
         }
     }
@@ -50,10 +56,12 @@ public class UserRepository {
                 return createUserFromResultSet(rs);
             }
         } catch (SQLException e) {
+            unitOfWork.rollbackTransaction();
             throw new DataAccessException("Error retrieving user by token", e);
         }
         return null;
     }
+
 
     public boolean updateUserToken(String token, String username) {
         if (username == null) {
@@ -160,9 +168,11 @@ public class UserRepository {
             }
             return false;
         } catch (SQLException e) {
+            unitOfWork.rollbackTransaction();
             throw new DataAccessException("Error updating user data", e);
         }
     }
+
 
     public List<User> getScoreboard() {
         List<User> scoreboard = new ArrayList<>();
