@@ -4,15 +4,15 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.UUID;
 
 public class Trading {
-    @JsonAlias({"id"})
+    @JsonAlias({"id", "Id"})
     private UUID id;
     @JsonAlias({"userId"})
     private int userId;
-    @JsonAlias({"cardId"})
+    @JsonAlias({"cardId", "CardToTrade"})
     private UUID cardId;
-    @JsonAlias({"type"})
+    @JsonAlias({"type","Type"})
     private String type; // monster oder spell
-    @JsonAlias({"minDamage"})
+    @JsonAlias({"minDamage", "MinimumDamage"})
     private double minDamage;
 
     public Trading() {}

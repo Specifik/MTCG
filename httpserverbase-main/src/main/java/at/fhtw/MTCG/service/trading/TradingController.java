@@ -10,7 +10,6 @@ import at.fhtw.httpserver.http.HttpStatus;
 import at.fhtw.httpserver.server.Request;
 import at.fhtw.httpserver.server.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -23,22 +22,44 @@ public class TradingController {
             List<Trading> tradings = tradingRepository.getAllTradings();
             return new Response(HttpStatus.OK, ContentType.JSON, objectMapper.writeValueAsString(tradings));
         } catch (Exception e) {
+            e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
 
     public Response createTrading(Request request) {
+        String token = request.getHeaderMap().getHeader("Authorization");
+        if (token == null) {
+            return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
+        }
+
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
+            UserRepository userRepository = new UserRepository(unitOfWork);
             TradingRepository tradingRepository = new TradingRepository(unitOfWork);
+
+            User user = userRepository.findUserByToken(token);
+            if (user == null) {
+                return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Invalid token\" }");
+            }
+
             Trading trading = objectMapper.readValue(request.getBody(), Trading.class);
+
+            // Setze die userId im Trading-Objekt
+            trading.setUserId(user.getId());
+
             boolean success = tradingRepository.createTrading(trading);
-            return success
-                    ? new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Trading deal created\" }")
-                    : new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Could not create trading deal\" }");
+            if (!success) {
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Invalid trade request\" }");
+            }
+
+            unitOfWork.commitTransaction();
+            return new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Trading deal created successfully\" }");
         } catch (Exception e) {
+            e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
+
 
     public Response deleteTrading(Request request) {
         String token = request.getHeaderMap().getHeader("Authorization");
@@ -46,6 +67,8 @@ public class TradingController {
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
         }
 
+        UUID tradingId = UUID.fromString(request.getPathParts().get(1));
+
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             TradingRepository tradingRepository = new TradingRepository(unitOfWork);
@@ -55,47 +78,59 @@ public class TradingController {
                 return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Invalid token\" }");
             }
 
-            UUID tradingId = UUID.fromString(request.getPathParts().get(1));
             boolean success = tradingRepository.deleteTrading(tradingId, user.getId());
+            if (!success) {
+                return new Response(HttpStatus.NOT_FOUND, ContentType.JSON, "{ \"message\": \"Trading deal not found or not owned by user\" }");
+            }
 
-            return success
-                    ? new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Trading deal deleted\" }")
-                    : new Response(HttpStatus.FORBIDDEN, ContentType.JSON, "{ \"message\": \"You can only delete your own trading deals\" }");
+            return new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Trading deal deleted successfully\" }");
         } catch (Exception e) {
+            e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");
         }
     }
 
     public Response tradeCard(Request request) {
-        System.out.println("DEBUG: `POST /tradings/{id}` wurde im TradingController aufgerufen!");
-
         String token = request.getHeaderMap().getHeader("Authorization");
         if (token == null) {
-            System.out.println("DEBUG: Kein Token erhalten!");
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Missing authentication token\" }");
         }
+
+        UUID tradingId = UUID.fromString(request.getPathParts().get(1));
 
         try (UnitOfWork unitOfWork = new UnitOfWork()) {
             UserRepository userRepository = new UserRepository(unitOfWork);
             TradingRepository tradingRepository = new TradingRepository(unitOfWork);
 
-            System.out.println("DEBUG: Trade-Request erhalten!");
-
             User user = userRepository.findUserByToken(token);
             if (user == null) {
-                System.out.println("DEBUG: Ungültiger Token!");
                 return new Response(HttpStatus.UNAUTHORIZED, ContentType.JSON, "{ \"message\": \"Invalid token\" }");
             }
-            System.out.println("DEBUG: User gefunden - ID: " + user.getId());
 
-            UUID tradingId = UUID.fromString(request.getPathParts().get(1));
-            UUID offeredCardId = new ObjectMapper().readValue(request.getBody(), UUID.class);
+            Trading trade = tradingRepository.getTradingById(tradingId);
+            if (trade == null) {
+                return new Response(HttpStatus.NOT_FOUND, ContentType.JSON, "{ \"message\": \"Trading deal not found\" }");
+            }
 
-            boolean success = tradingRepository.tradeCard(tradingId, user.getId(), offeredCardId);
+            // Stelle sicher, dass der User nicht seine eigene Karte tauscht
+            if (trade.getUserId() == user.getId()) {
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"You cannot trade with yourself\" }");
+            }
 
-            return success
-                    ? new Response(HttpStatus.OK, ContentType.JSON, "{ \"message\": \"Trade erfolgreich!\" }")
-                    : new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Trade fehlgeschlagen. Anforderungen nicht erfüllt oder ungültiger Trade.\" }");
+            // Extrahiere die angebotene Karte aus der Anfrage
+            UUID offeredCardId = objectMapper.readValue(request.getBody(), UUID.class);
+
+            // Überprüfe, ob die angebotene Karte die Bedingungen erfüllt
+            boolean isTradeValid = tradingRepository.validateTrade(trade, offeredCardId, user.getId());
+            if (!isTradeValid) {
+                return new Response(HttpStatus.BAD_REQUEST, ContentType.JSON, "{ \"message\": \"Trade failed. Requirements not met\" }");
+            }
+
+            // Führe den Tausch durch
+            tradingRepository.executeTrade(trade, offeredCardId, user.getId());
+            unitOfWork.commitTransaction();
+
+            return new Response(HttpStatus.CREATED, ContentType.JSON, "{ \"message\": \"Trade successful\" }");
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.JSON, "{ \"message\": \"Internal Server Error\" }");

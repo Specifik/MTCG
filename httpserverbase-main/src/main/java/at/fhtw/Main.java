@@ -35,7 +35,6 @@ public class Main {
         router.addService("/deck", new DeckService());
         router.addService("/stats", new StatsService());
         router.addService("/scoreboard", new ScoreboardService());
-        router.addService("/battles", new BattleService());
         router.addService("/tradings", new TradingService());
         router.addService("/echo", new EchoService());
 
